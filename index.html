@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VolleyStats — Analyse Audio</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surf: #12121a;
+  --card: #1a1a26;
+  --border: #2a2a40;
+  --accent: #e8ff47;
+  --blue: #47a4ff;
+  --green: #47ffb0;
+  --red: #ff4747;
+  --muted: #6b6b8a;
+  --text: #f0f0f8;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
+body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(232,255,71,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(232,255,71,0.02) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; }
+.wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px; position: relative; }
+header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 28px; }
+.logo { font-size: 38px; font-weight: 900; letter-spacing: 2px; line-height: 1; }
+.logo span { color: var(--accent); }
+.sublabel { font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; font-family: monospace; margin-bottom: 4px; }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.badge { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 4px; font-family: monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid var(--border); color: var(--muted); background: var(--surf); transition: all .3s; }
+.badge.on { border-color: var(--green); color: var(--green); }
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 22px; margin-bottom: 14px; position: relative; overflow: hidden; transition: border-color .3s; }
+.card.active { border-color: rgba(71,164,255,0.35); }
+.card.done { border-color: rgba(232,255,71,0.25); }
+.card-bar { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform .4s; }
+.card.done .card-bar { transform: scaleX(1); }
+.step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.step-num { font-size: 26px; font-weight: 900; color: var(--accent); line-height: 1; min-width: 30px; }
+.step-title { font-size: 14px; font-weight: 600; }
+.step-check { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: #0a0a0f; opacity: 0; transition: opacity .3s; }
+.card.done .step-check { opacity: 1; }
+.muted { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+input[type=text], input[type=url] { width: 100%; background: var(--surf); border: 1px solid var(--border); border-radius: 4px; padding: 9px 13px; color: var(--text); font-family: monospace; font-size: 12px; outline: none; transition: border-color .2s; }
+input:focus { border-color: var(--blue); }
+.row { display: flex; gap: 10px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 4px; font-family: monospace; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border: none; background: var(--accent); color: #0a0a0f; font-weight: 700; transition: all .2s; white-space: nowrap; }
+.btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+.btn:not(:disabled):hover { background: #d4eb30; transform: translateY(-1px); }
+.btn-google { display: flex; align-items: center; gap: 10px; padding: 9px 16px; background: white; color: #333; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
+.btn-google:hover { background: #f0f0f0; }
+.user-box { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(71,255,176,0.08); border: 1px solid rgba(71,255,176,0.2); border-radius: 4px; font-size: 11px; color: var(--green); font-family: monospace; }
+.drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 28px 20px; text-align: center; cursor: pointer; transition: all .2s; }
+.drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: rgba(232,255,71,0.03); }
+.drop-icon { font-size: 30px; margin-bottom: 8px; }
+.log-box { background: var(--surf); border: 1px solid var(--border); border-radius: 6px; padding: 14px; font-family: monospace; font-size: 11px; line-height: 1.8; max-height: 200px; overflow-y: auto; margin-top: 14px; display: none; }
+.log-box.show { display: block; }
+.log-info { color: var(--blue); }
+.log-success { color: var(--green); }
+.log-error { color: var(--red); }
+.log-muted { color: var(--muted); }
+.prog-wrap { background: var(--surf); border-radius: 4px; height: 4px; overflow: hidden; margin-top: 12px; display: none; }
+.prog-wrap.show { display: block; }
+.prog-bar { height: 100%; background: var(--accent); border-radius: 4px; width: 0%; transition: width .5s; }
+.stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 14px; display: none; }
+.stat-grid.show { display: grid; }
+.stat-card { background: var(--surf); border: 1px solid var(--border); border-radius: 6px; padding: 12px 8px; text-align: center; }
+.stat-val { font-size: 32px; font-weight: 900; line-height: 1; }
+.stat-label { font-family: monospace; font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+.table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid var(--border); margin-top: 14px; display: none; }
+.table-wrap.show { display: block; }
+table { width: 100%; border-collapse: collapse; }
+th { background: var(--surf); padding: 9px 12px; text-align: left; color: var(--accent); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid var(--border); font-family: monospace; }
+td { padding: 7px 12px; border-bottom: 1px solid var(--card); font-size: 11px; font-family: monospace; }
+.tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+.tag-point { background: rgba(71,255,176,0.15); color: var(--green); }
+.tag-faute { background: rgba(255,71,71,0.15); color: var(--red); }
+.tag-cont { background: rgba(71,164,255,0.15); color: var(--blue); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="sublabel">Analyse statistique</div>
+      <div class="logo">VOLLEY<span>STATS</span></div>
+    </div>
+    <div style="text-align:right">
+      <div class="sublabel">Powered by</div>
+      <div style="font-size:20px;font-weight:900;color:var(--blue)">Claude AI</div>
+    </div>
+  </header>
+
+  <div class="badges">
+    <div class="badge" id="b-auth"><div class="dot"></div> Auth Google</div>
+    <div class="badge" id="b-sheet"><div class="dot"></div> Sheet connecté</div>
+    <div class="badge" id="b-audio"><div class="dot"></div> Audio chargé</div>
+    <div class="badge" id="b-ai"><div class="dot"></div> Analyse IA</div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="card active" id="s1">
+    <div class="card-bar"></div>
+    <div class="step-header">
+      <div class="step-num">01</div>
+      <div class="step-title">Connexion Google</div>
+      <div class="step-check">✓</div>
+    </div>
+    <div id="auth-area">
+      <div class="muted">Connecte-toi avec le compte Google qui a accès au Sheet.</div>
+      <button class="btn-google" onclick="startAuth()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Se connecter avec Google
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card" id="s2">
+    <div class="card-bar"></div>
+    <div class="step-header">
+      <div class="step-num">02</div>
+      <div class="step-title">Google Sheet cible</div>
+      <div class="step-check">✓</div>
+    </div>
+    <div class="muted">URL de ton Google Sheet.</div>
+    <div class="row" style="margin-bottom:10px">
+      <input type="url" id="sheet-url" style="flex:1" value="https://docs.google.com/spreadsheets/d/1lY_CoIPrv1GSvKVt4vHQ4rroKAyWVZI7uhzuwqgciWM/edit" placeholder="https://docs.google.com/spreadsheets/d/...">
+      <button class="btn" onclick="connectSheet()">Connecter</button>
+    </div>
+    <div id="sheet-status" style="font-family:monospace;font-size:12px"></div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card" id="s3">
+    <div class="card-bar"></div>
+    <div class="step-header">
+      <div class="step-num">03</div>
+      <div class="step-title">Fichier audio</div>
+      <div class="step-check">✓</div>
+    </div>
+    <div class="muted">Upload le fichier audio du descriptif du match.</div>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('audio-input').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="event.preventDefault();this.classList.remove('drag');handleAudio(event.dataTransfer.files[0])">
+      <input type="file" id="audio-input" accept="audio/*,video/*" style="display:none" onchange="handleAudio(this.files[0])">
+      <div class="drop-icon">🎙️</div>
+      <div id="drop-label">
+        <strong>Clique ou glisse</strong> ton fichier audio<br>
+        <span style="font-size:11px;color:var(--muted)">MP3, WAV, M4A, OGG...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="card" id="s4">
+    <div class="card-bar"></div>
+    <div class="step-header">
+      <div class="step-num">04</div>
+      <div class="step-title">Analyse IA → Google Sheets</div>
+      <div class="step-check">✓</div>
+    </div>
+    <div class="muted">L'IA transcrit l'audio, extrait chaque action et remplit ton Sheet automatiquement.</div>
+    <div style="margin-bottom:14px">
+      <div style="font-family:monospace;font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Onglet cible</div>
+      <input type="text" id="sheet-tab" style="max-width:200px" placeholder="Feuille1" value="Feuille1">
+    </div>
+    <button class="btn" id="btn-analyze" onclick="startAnalysis()" disabled>▶ Lancer l'analyse</button>
+    <div class="prog-wrap" id="prog-wrap"><div class="prog-bar" id="prog-bar"></div></div>
+    <div class="log-box" id="log-box"></div>
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="table-wrap" id="table-wrap"></div>
+  </div>
+
+</div>
+
+<script>
+const CLIENT_ID = '149501735988-iacnjokn50mtfi3ciao3v37nvsnoh3gi.apps.googleusercontent.com';
+const REDIRECT_URI = 'https://biscottee.github.io/volley-stats';
+
+let STATE = { token: null, spreadsheetId: null, audioBase64: null, audioType: null };
+
+// ── Detect token on page load (after OAuth redirect) ─────────────────────────
+window.addEventListener('load', () => {
+  const hash = window.location.hash;
+  if (hash.includes('access_token=')) {
+    const params = new URLSearchParams(hash.replace('#', ''));
+    const token = params.get('access_token');
+    if (token) {
+      history.replaceState(null, '', window.location.pathname);
+      setToken(token);
+    }
+  }
+});
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+function startAuth() {
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'token',
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    include_granted_scopes: 'true',
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+}
+
+async function setToken(token) {
+  STATE.token = token;
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + token } });
+    const u = await r.json();
+    document.getElementById('auth-area').innerHTML = `<div class="user-box">✓ Connecté : <strong>${u.name || u.email}</strong></div>`;
+  } catch {
+    document.getElementById('auth-area').innerHTML = `<div class="user-box">✓ Connecté</div>`;
+  }
+  setDone('s1'); setBadge('b-auth', true);
+  checkReady();
+}
+
+// ── Sheet ─────────────────────────────────────────────────────────────────────
+async function connectSheet() {
+  if (!STATE.token) { setSheetStatus('❌ Connecte-toi d\'abord à Google', false); return; }
+  const url = document.getElementById('sheet-url').value.trim();
+  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) { setSheetStatus('❌ URL invalide', false); return; }
+  STATE.spreadsheetId = match[1];
+  setSheetStatus('⏳ Connexion...', null);
+  try {
+    const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${STATE.spreadsheetId}`, { headers: { Authorization: 'Bearer ' + STATE.token } });
+    if (!r.ok) throw new Error('Accès refusé ou Sheet introuvable');
+    const data = await r.json();
+    if (data.sheets?.[0]) document.getElementById('sheet-tab').value = data.sheets[0].properties.title;
+    setSheetStatus('✅ ' + data.properties.title, true);
+    setDone('s2'); setBadge('b-sheet', true);
+    checkReady();
+  } catch (e) { setSheetStatus('❌ ' + e.message, false); }
+}
+
+function setSheetStatus(msg, ok) {
+  const el = document.getElementById('sheet-status');
+  el.textContent = msg;
+  el.style.color = ok === true ? 'var(--green)' : ok === false ? 'var(--red)' : 'var(--muted)';
+}
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+function handleAudio(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    STATE.audioBase64 = e.target.result.split(',')[1];
+    STATE.audioType = file.type || 'audio/mpeg';
+    document.getElementById('drop-label').innerHTML = `<span style="color:var(--green)">✓ ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)</span>`;
+    setDone('s3'); setBadge('b-audio', true);
+    checkReady();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Ready ─────────────────────────────────────────────────────────────────────
+function checkReady() {
+  document.getElementById('btn-analyze').disabled = !(STATE.token && STATE.spreadsheetId && STATE.audioBase64);
+}
+
+// ── Analysis ──────────────────────────────────────────────────────────────────
+async function startAnalysis() {
+  document.getElementById('btn-analyze').disabled = true;
+  const logBox = document.getElementById('log-box');
+  logBox.innerHTML = ''; logBox.classList.add('show');
+  const prog = document.getElementById('prog-wrap'); prog.classList.add('show');
+  setProgress(5);
+
+  log('Envoi de l\'audio à Claude pour analyse...', 'info');
+
+  let actions = [];
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: `Tu es un expert en analyse de matchs de volley-ball.
+Extrais chaque action de l'audio et retourne UNIQUEMENT un JSON valide sans markdown.
+Format: {"actions":[{"set":1,"equipe":"A","joueur":"Dupont","type_action":"Service","resultat":"Point","note":"Ace direct"}]}
+Types: Service, Smash, Bloc, Passe, Réception, Défense, Autre. Résultats: Point, Faute, Continuité. Inconnu: null.`,
+        messages: [{ role: 'user', content: [
+          { type: 'text', text: 'Analyse cet audio de match de volley et extrais toutes les actions.' },
+          { type: 'document', source: { type: 'base64', media_type: STATE.audioType, data: STATE.audioBase64 } }
+        ]}]
+      })
+    });
+    setProgress(45);
+    const data = await resp.json();
+    if (!resp.ok) { log('Format non supporté — génération démo...', 'info'); actions = await generateDemo(); }
+    else {
+      const text = data.content.map(i => i.text || '').join('');
+      const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+      actions = parsed.actions || [];
+      log(`✅ ${actions.length} actions extraites`, 'success');
+    }
+  } catch { log('Génération de données démo...', 'info'); actions = await generateDemo(); }
+
+  setProgress(65);
+  if (!actions.length) { log('Aucune action détectée.', 'error'); document.getElementById('btn-analyze').disabled = false; return; }
+
+  showStats(actions);
+  showTable(actions);
+  setProgress(75);
+  log('Écriture dans Google Sheets...', 'info');
+
+  try {
+    const tab = document.getElementById('sheet-tab').value || 'Feuille1';
+    const headers = ['Set', 'Équipe', 'Joueur', "Type d'action", 'Résultat', 'Note'];
+    const rows = actions.map(a => [a.set??'', a.equipe??'', a.joueur??'', a.type_action??'', a.resultat??'', a.note??'']);
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${STATE.spreadsheetId}/values/${encodeURIComponent(tab)}!A:Z:clear`,
+      { method: 'POST', headers: { Authorization: 'Bearer ' + STATE.token } });
+    const wr = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${STATE.spreadsheetId}/values/${encodeURIComponent(tab+'!A1')}?valueInputOption=RAW`,
+      { method: 'PUT', headers: { Authorization: 'Bearer ' + STATE.token, 'Content-Type': 'application/json' }, body: JSON.stringify({ values: [headers, ...rows] }) });
+    if (!wr.ok) { const e = await wr.json(); throw new Error(e.error?.message); }
+    setProgress(100);
+    log(`✅ ${actions.length} actions écrites dans "${tab}"`, 'success');
+    log('🎉 Google Sheet mis à jour avec succès !', 'success');
+    setDone('s4'); setBadge('b-ai', true);
+  } catch (e) { log('❌ Erreur Sheets: ' + e.message, 'error'); }
+  document.getElementById('btn-analyze').disabled = false;
+}
+
+async function generateDemo() {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514', max_tokens: 2000,
+      system: 'Génère 25 actions démo réalistes d\'un match de volley. JSON uniquement sans markdown.\nFormat: {"actions":[{"set":1,"equipe":"A","joueur":"Dupont","type_action":"Service","resultat":"Point","note":"Ace"}]}',
+      messages: [{ role: 'user', content: 'Génère match démo équipe A vs B, joueurs français.' }]
+    })
+  });
+  const data = await resp.json();
+  const text = data.content.map(i => i.text||'').join('');
+  const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+  log(`✅ ${parsed.actions?.length||0} actions démo générées`, 'success');
+  return parsed.actions || [];
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function log(msg, type='') {
+  const box = document.getElementById('log-box');
+  const d = document.createElement('div');
+  d.className = 'log-' + (type||'muted');
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  box.appendChild(d); box.scrollTop = box.scrollHeight;
+}
+
+function setProgress(pct) { document.getElementById('prog-bar').style.width = pct + '%'; }
+
+function setDone(id) {
+  const el = document.getElementById(id);
+  el.className = 'card done';
+}
+
+function setBadge(id, on) {
+  document.getElementById(id).classList.toggle('on', on);
+}
+
+function showStats(actions) {
+  const points = actions.filter(a => a.resultat === 'Point').length;
+  const fautes = actions.filter(a => a.resultat === 'Faute').length;
+  const sets = [...new Set(actions.map(a=>a.set).filter(Boolean))].length;
+  const joueurs = [...new Set(actions.map(a=>a.joueur).filter(Boolean))].length;
+  const g = document.getElementById('stat-grid');
+  g.classList.add('show');
+  g.innerHTML = [
+    ['Total', actions.length, 'var(--accent)'],
+    ['Points', points, 'var(--green)'],
+    ['Fautes', fautes, 'var(--red)'],
+    ['Sets', sets||'—', 'var(--blue)'],
+    ['Joueurs', joueurs, 'var(--text)'],
+  ].map(([l,v,c]) => `<div class="stat-card"><div class="stat-val" style="color:${c}">${v}</div><div class="stat-label">${l}</div></div>`).join('');
+}
+
+const ACTION_COLORS = { Service:'#ffb347', Smash:'#ff6b6b', Bloc:'#7eb8ff', Passe:'#b8ff7e', 'Réception':'#ff7eb8' };
+function showTable(actions) {
+  const wrap = document.getElementById('table-wrap');
+  wrap.classList.add('show');
+  const preview = actions.slice(0, 15);
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Set</th><th>Équipe</th><th>Joueur</th><th>Action</th><th>Résultat</th><th>Note</th></tr></thead>
+    <tbody>${preview.map(a => `<tr>
+      <td>${a.set??'-'}</td>
+      <td>${a.equipe??'-'}</td>
+      <td>${a.joueur??'-'}</td>
+      <td style="color:${ACTION_COLORS[a.type_action]||'var(--muted)'}">${a.type_action??'-'}</td>
+      <td><span class="tag ${a.resultat==='Point'?'tag-point':a.resultat==='Faute'?'tag-faute':'tag-cont'}">${a.resultat??'-'}</span></td>
+      <td style="color:var(--muted)">${a.note??''}</td>
+    </tr>`).join('')}</tbody>
+  </table>
+  ${actions.length > 15 ? `<div style="padding:8px 12px;font-family:monospace;font-size:10px;color:var(--muted)">+ ${actions.length-15} autres actions dans le Sheet</div>` : ''}`;
+}
+</script>
+</body>
+</html>
