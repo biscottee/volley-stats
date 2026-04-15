@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VolleyStats — Analyse Audio</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root {
   --bg: #0a0a0f;
@@ -43,6 +42,9 @@ header { display: flex; justify-content: space-between; align-items: flex-end; b
 .muted { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
 input[type=text], input[type=url] { width: 100%; background: var(--surf); border: 1px solid var(--border); border-radius: 4px; padding: 9px 13px; color: var(--text); font-family: monospace; font-size: 12px; outline: none; transition: border-color .2s; }
 input:focus { border-color: var(--blue); }
+textarea { width: 100%; background: var(--surf); border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px; color: var(--text); font-family: monospace; font-size: 12px; outline: none; transition: border-color .2s; resize: vertical; line-height: 1.6; }
+textarea:focus { border-color: var(--blue); }
+textarea::placeholder { color: var(--muted); }
 .row { display: flex; gap: 10px; align-items: center; }
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 4px; font-family: monospace; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border: none; background: var(--accent); color: #0a0a0f; font-weight: 700; transition: all .2s; white-space: nowrap; }
 .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
@@ -50,9 +52,8 @@ input:focus { border-color: var(--blue); }
 .btn-google { display: flex; align-items: center; gap: 10px; padding: 9px 16px; background: white; color: #333; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
 .btn-google:hover { background: #f0f0f0; }
 .user-box { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(71,255,176,0.08); border: 1px solid rgba(71,255,176,0.2); border-radius: 4px; font-size: 11px; color: var(--green); font-family: monospace; }
-.drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 28px 20px; text-align: center; cursor: pointer; transition: all .2s; }
-.drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: rgba(232,255,71,0.03); }
-.drop-icon { font-size: 30px; margin-bottom: 8px; }
+.char-count { font-family: monospace; font-size: 10px; color: var(--muted); text-align: right; margin-top: 6px; }
+.char-count.ok { color: var(--green); }
 .log-box { background: var(--surf); border: 1px solid var(--border); border-radius: 6px; padding: 14px; font-family: monospace; font-size: 11px; line-height: 1.8; max-height: 200px; overflow-y: auto; margin-top: 14px; display: none; }
 .log-box.show { display: block; }
 .log-info { color: var(--blue); }
@@ -62,7 +63,7 @@ input:focus { border-color: var(--blue); }
 .prog-wrap { background: var(--surf); border-radius: 4px; height: 4px; overflow: hidden; margin-top: 12px; display: none; }
 .prog-wrap.show { display: block; }
 .prog-bar { height: 100%; background: var(--accent); border-radius: 4px; width: 0%; transition: width .5s; }
-.stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 14px; display: none; }
+.stat-grid { display: none; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 14px; }
 .stat-grid.show { display: grid; }
 .stat-card { background: var(--surf); border: 1px solid var(--border); border-radius: 6px; padding: 12px 8px; text-align: center; }
 .stat-val { font-size: 32px; font-weight: 900; line-height: 1; }
@@ -95,7 +96,7 @@ td { padding: 7px 12px; border-bottom: 1px solid var(--card); font-size: 11px; f
   <div class="badges">
     <div class="badge" id="b-auth"><div class="dot"></div> Auth Google</div>
     <div class="badge" id="b-sheet"><div class="dot"></div> Sheet connecté</div>
-    <div class="badge" id="b-audio"><div class="dot"></div> Audio chargé</div>
+    <div class="badge" id="b-text"><div class="dot"></div> Transcription prête</div>
     <div class="badge" id="b-ai"><div class="dot"></div> Analyse IA</div>
   </div>
 
@@ -137,20 +138,20 @@ td { padding: 7px 12px; border-bottom: 1px solid var(--card); font-size: 11px; f
     <div class="card-bar"></div>
     <div class="step-header">
       <div class="step-num">03</div>
-      <div class="step-title">Fichier audio</div>
+      <div class="step-title">Transcription du match</div>
       <div class="step-check">✓</div>
     </div>
-    <div class="muted">Upload le fichier audio du descriptif du match.</div>
-    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('audio-input').click()"
-      ondragover="event.preventDefault();this.classList.add('drag')"
-      ondragleave="this.classList.remove('drag')"
-      ondrop="event.preventDefault();this.classList.remove('drag');handleAudio(event.dataTransfer.files[0])">
-      <input type="file" id="audio-input" accept="audio/*,video/*" style="display:none" onchange="handleAudio(this.files[0])">
-      <div class="drop-icon">🎙️</div>
-      <div id="drop-label">
-        <strong>Clique ou glisse</strong> ton fichier audio<br>
-        <span style="font-size:11px;color:var(--muted)">MP3, WAV, M4A, OGG...</span>
-      </div>
+    <div class="muted">Colle ici la transcription texte de ton audio (obtenue via Whisper ou autre).</div>
+    <textarea id="transcription" rows="8" placeholder="Exemple :
+Set 1 — Service de Dupont, ace, point équipe A.
+Martin smash en diagonale, point équipe B.
+Réception de Leroy, balle haute, continuité.
+Bloc de Moreau sur smash adverse, point équipe A.
+..."
+      oninput="handleTextInput()"></textarea>
+    <div class="char-count" id="char-count">0 caractères</div>
+    <div style="margin-top:10px">
+      <button class="btn" onclick="validateText()" id="btn-validate" disabled>Valider la transcription</button>
     </div>
   </div>
 
@@ -162,7 +163,7 @@ td { padding: 7px 12px; border-bottom: 1px solid var(--card); font-size: 11px; f
       <div class="step-title">Analyse IA → Google Sheets</div>
       <div class="step-check">✓</div>
     </div>
-    <div class="muted">L'IA transcrit l'audio, extrait chaque action et remplit ton Sheet automatiquement.</div>
+    <div class="muted">L'IA analyse la transcription, extrait chaque action et remplit ton Sheet automatiquement.</div>
     <div style="margin-bottom:14px">
       <div style="font-family:monospace;font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Onglet cible</div>
       <input type="text" id="sheet-tab" style="max-width:200px" placeholder="Feuille1" value="Feuille1">
@@ -180,22 +181,19 @@ td { padding: 7px 12px; border-bottom: 1px solid var(--card); font-size: 11px; f
 const CLIENT_ID = '149501735988-iacnjokn50mtfi3ciao3v37nvsnoh3gi.apps.googleusercontent.com';
 const REDIRECT_URI = 'https://biscottee.github.io/volley-stats';
 
-let STATE = { token: null, spreadsheetId: null, audioBase64: null, audioType: null };
+let STATE = { token: null, spreadsheetId: null, transcription: null };
 
-// ── Detect token on page load (after OAuth redirect) ─────────────────────────
+// ── Detect token on page load (after OAuth redirect) ──────────────────────────
 window.addEventListener('load', () => {
   const hash = window.location.hash;
   if (hash.includes('access_token=')) {
     const params = new URLSearchParams(hash.replace('#', ''));
     const token = params.get('access_token');
-    if (token) {
-      history.replaceState(null, '', window.location.pathname);
-      setToken(token);
-    }
+    if (token) { history.replaceState(null, '', window.location.pathname); setToken(token); }
   }
 });
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────────────────────
 function startAuth() {
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -245,23 +243,27 @@ function setSheetStatus(msg, ok) {
   el.style.color = ok === true ? 'var(--green)' : ok === false ? 'var(--red)' : 'var(--muted)';
 }
 
-// ── Audio ─────────────────────────────────────────────────────────────────────
-function handleAudio(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    STATE.audioBase64 = e.target.result.split(',')[1];
-    STATE.audioType = file.type || 'audio/mpeg';
-    document.getElementById('drop-label').innerHTML = `<span style="color:var(--green)">✓ ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)</span>`;
-    setDone('s3'); setBadge('b-audio', true);
-    checkReady();
-  };
-  reader.readAsDataURL(file);
+// ── Text input ────────────────────────────────────────────────────────────────
+function handleTextInput() {
+  const val = document.getElementById('transcription').value;
+  const len = val.trim().length;
+  const counter = document.getElementById('char-count');
+  counter.textContent = len + ' caractères';
+  counter.className = 'char-count' + (len > 20 ? ' ok' : '');
+  document.getElementById('btn-validate').disabled = len < 20;
+}
+
+function validateText() {
+  const val = document.getElementById('transcription').value.trim();
+  if (val.length < 20) return;
+  STATE.transcription = val;
+  setDone('s3'); setBadge('b-text', true);
+  checkReady();
 }
 
 // ── Ready ─────────────────────────────────────────────────────────────────────
 function checkReady() {
-  document.getElementById('btn-analyze').disabled = !(STATE.token && STATE.spreadsheetId && STATE.audioBase64);
+  document.getElementById('btn-analyze').disabled = !(STATE.token && STATE.spreadsheetId && STATE.transcription);
 }
 
 // ── Analysis ──────────────────────────────────────────────────────────────────
@@ -269,10 +271,10 @@ async function startAnalysis() {
   document.getElementById('btn-analyze').disabled = true;
   const logBox = document.getElementById('log-box');
   logBox.innerHTML = ''; logBox.classList.add('show');
-  const prog = document.getElementById('prog-wrap'); prog.classList.add('show');
+  document.getElementById('prog-wrap').classList.add('show');
   setProgress(5);
 
-  log('Envoi de l\'audio à Claude pour analyse...', 'info');
+  log('Analyse de la transcription par Claude...', 'info');
 
   let actions = [];
   try {
@@ -283,28 +285,35 @@ async function startAnalysis() {
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
         system: `Tu es un expert en analyse de matchs de volley-ball.
-Extrais chaque action de l'audio et retourne UNIQUEMENT un JSON valide sans markdown.
+Tu reçois la transcription texte d'un descriptif action par action d'un match de volley.
+Extrais chaque action et retourne UNIQUEMENT un JSON valide sans markdown, sans texte avant ou après.
 Format: {"actions":[{"set":1,"equipe":"A","joueur":"Dupont","type_action":"Service","resultat":"Point","note":"Ace direct"}]}
-Types: Service, Smash, Bloc, Passe, Réception, Défense, Autre. Résultats: Point, Faute, Continuité. Inconnu: null.`,
-        messages: [{ role: 'user', content: [
-          { type: 'text', text: 'Analyse cet audio de match de volley et extrais toutes les actions.' },
-          { type: 'document', source: { type: 'base64', media_type: STATE.audioType, data: STATE.audioBase64 } }
-        ]}]
+Types d'actions possibles: Service, Smash, Bloc, Passe, Réception, Défense, Autre.
+Résultats possibles: Point, Faute, Continuité.
+Si une info est inconnue ou non mentionnée: null.
+Extrais TOUTES les actions mentionnées, même si le texte est imprécis.`,
+        messages: [{ role: 'user', content: `Voici la transcription du match :\n\n${STATE.transcription}` }]
       })
     });
-    setProgress(45);
+
+    setProgress(50);
     const data = await resp.json();
-    if (!resp.ok) { log('Format non supporté — génération démo...', 'info'); actions = await generateDemo(); }
-    else {
-      const text = data.content.map(i => i.text || '').join('');
-      const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
-      actions = parsed.actions || [];
-      log(`✅ ${actions.length} actions extraites`, 'success');
-    }
-  } catch { log('Génération de données démo...', 'info'); actions = await generateDemo(); }
+
+    if (!resp.ok) throw new Error(data.error?.message || 'Erreur API');
+
+    const text = data.content.map(i => i.text || '').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    actions = parsed.actions || [];
+    log(`✅ ${actions.length} actions extraites`, 'success');
+
+  } catch (e) {
+    log('❌ Erreur analyse: ' + e.message, 'error');
+    document.getElementById('btn-analyze').disabled = false;
+    return;
+  }
 
   setProgress(65);
-  if (!actions.length) { log('Aucune action détectée.', 'error'); document.getElementById('btn-analyze').disabled = false; return; }
+  if (!actions.length) { log('Aucune action détectée dans la transcription.', 'error'); document.getElementById('btn-analyze').disabled = false; return; }
 
   showStats(actions);
   showTable(actions);
@@ -315,33 +324,23 @@ Types: Service, Smash, Bloc, Passe, Réception, Défense, Autre. Résultats: Poi
     const tab = document.getElementById('sheet-tab').value || 'Feuille1';
     const headers = ['Set', 'Équipe', 'Joueur', "Type d'action", 'Résultat', 'Note'];
     const rows = actions.map(a => [a.set??'', a.equipe??'', a.joueur??'', a.type_action??'', a.resultat??'', a.note??'']);
+
     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${STATE.spreadsheetId}/values/${encodeURIComponent(tab)}!A:Z:clear`,
       { method: 'POST', headers: { Authorization: 'Bearer ' + STATE.token } });
+
     const wr = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${STATE.spreadsheetId}/values/${encodeURIComponent(tab+'!A1')}?valueInputOption=RAW`,
       { method: 'PUT', headers: { Authorization: 'Bearer ' + STATE.token, 'Content-Type': 'application/json' }, body: JSON.stringify({ values: [headers, ...rows] }) });
+
     if (!wr.ok) { const e = await wr.json(); throw new Error(e.error?.message); }
+
     setProgress(100);
-    log(`✅ ${actions.length} actions écrites dans "${tab}"`, 'success');
+    log(`✅ ${actions.length} lignes écrites dans l'onglet "${tab}"`, 'success');
     log('🎉 Google Sheet mis à jour avec succès !', 'success');
     setDone('s4'); setBadge('b-ai', true);
-  } catch (e) { log('❌ Erreur Sheets: ' + e.message, 'error'); }
-  document.getElementById('btn-analyze').disabled = false;
-}
 
-async function generateDemo() {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514', max_tokens: 2000,
-      system: 'Génère 25 actions démo réalistes d\'un match de volley. JSON uniquement sans markdown.\nFormat: {"actions":[{"set":1,"equipe":"A","joueur":"Dupont","type_action":"Service","resultat":"Point","note":"Ace"}]}',
-      messages: [{ role: 'user', content: 'Génère match démo équipe A vs B, joueurs français.' }]
-    })
-  });
-  const data = await resp.json();
-  const text = data.content.map(i => i.text||'').join('');
-  const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
-  log(`✅ ${parsed.actions?.length||0} actions démo générées`, 'success');
-  return parsed.actions || [];
+  } catch (e) { log('❌ Erreur Sheets: ' + e.message, 'error'); }
+
+  document.getElementById('btn-analyze').disabled = false;
 }
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
@@ -354,15 +353,8 @@ function log(msg, type='') {
 }
 
 function setProgress(pct) { document.getElementById('prog-bar').style.width = pct + '%'; }
-
-function setDone(id) {
-  const el = document.getElementById(id);
-  el.className = 'card done';
-}
-
-function setBadge(id, on) {
-  document.getElementById(id).classList.toggle('on', on);
-}
+function setDone(id) { document.getElementById(id).className = 'card done'; }
+function setBadge(id, on) { document.getElementById(id).classList.toggle('on', on); }
 
 function showStats(actions) {
   const points = actions.filter(a => a.resultat === 'Point').length;
