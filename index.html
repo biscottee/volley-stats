@@ -6,16 +6,9 @@
 <title>VolleyStats — Analyse Audio</title>
 <style>
 :root {
-  --bg: #0a0a0f;
-  --surf: #12121a;
-  --card: #1a1a26;
-  --border: #2a2a40;
-  --accent: #e8ff47;
-  --blue: #47a4ff;
-  --green: #47ffb0;
-  --red: #ff4747;
-  --muted: #6b6b8a;
-  --text: #f0f0f8;
+  --bg: #0a0a0f; --surf: #12121a; --card: #1a1a26; --border: #2a2a40;
+  --accent: #e8ff47; --blue: #47a4ff; --green: #47ffb0; --red: #ff4747;
+  --muted: #6b6b8a; --text: #f0f0f8;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
@@ -40,7 +33,7 @@ header { display: flex; justify-content: space-between; align-items: flex-end; b
 .step-check { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: #0a0a0f; opacity: 0; transition: opacity .3s; }
 .card.done .step-check { opacity: 1; }
 .muted { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
-input[type=text], input[type=url] { width: 100%; background: var(--surf); border: 1px solid var(--border); border-radius: 4px; padding: 9px 13px; color: var(--text); font-family: monospace; font-size: 12px; outline: none; transition: border-color .2s; }
+input[type=text], input[type=url], input[type=password] { width: 100%; background: var(--surf); border: 1px solid var(--border); border-radius: 4px; padding: 9px 13px; color: var(--text); font-family: monospace; font-size: 12px; outline: none; transition: border-color .2s; }
 input:focus { border-color: var(--blue); }
 textarea { width: 100%; background: var(--surf); border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px; color: var(--text); font-family: monospace; font-size: 12px; outline: none; transition: border-color .2s; resize: vertical; line-height: 1.6; }
 textarea:focus { border-color: var(--blue); }
@@ -49,17 +42,15 @@ textarea::placeholder { color: var(--muted); }
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 4px; font-family: monospace; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border: none; background: var(--accent); color: #0a0a0f; font-weight: 700; transition: all .2s; white-space: nowrap; }
 .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
 .btn:not(:disabled):hover { background: #d4eb30; transform: translateY(-1px); }
-.btn-google { display: flex; align-items: center; gap: 10px; padding: 9px 16px; background: white; color: #333; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
+.btn-google { display: flex; align-items: center; gap: 10px; padding: 9px 16px; background: white; color: #333; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
 .btn-google:hover { background: #f0f0f0; }
 .user-box { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(71,255,176,0.08); border: 1px solid rgba(71,255,176,0.2); border-radius: 4px; font-size: 11px; color: var(--green); font-family: monospace; }
+.info-box { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; background: rgba(71,164,255,0.08); border: 1px solid rgba(71,164,255,0.2); border-radius: 4px; font-size: 11px; color: var(--blue); font-family: monospace; margin-bottom: 12px; line-height: 1.6; }
 .char-count { font-family: monospace; font-size: 10px; color: var(--muted); text-align: right; margin-top: 6px; }
 .char-count.ok { color: var(--green); }
 .log-box { background: var(--surf); border: 1px solid var(--border); border-radius: 6px; padding: 14px; font-family: monospace; font-size: 11px; line-height: 1.8; max-height: 200px; overflow-y: auto; margin-top: 14px; display: none; }
 .log-box.show { display: block; }
-.log-info { color: var(--blue); }
-.log-success { color: var(--green); }
-.log-error { color: var(--red); }
-.log-muted { color: var(--muted); }
+.log-info { color: var(--blue); } .log-success { color: var(--green); } .log-error { color: var(--red); } .log-muted { color: var(--muted); }
 .prog-wrap { background: var(--surf); border-radius: 4px; height: 4px; overflow: hidden; margin-top: 12px; display: none; }
 .prog-wrap.show { display: block; }
 .prog-bar { height: 100%; background: var(--accent); border-radius: 4px; width: 0%; transition: width .5s; }
@@ -94,14 +85,34 @@ td { padding: 7px 12px; border-bottom: 1px solid var(--card); font-size: 11px; f
   </header>
 
   <div class="badges">
+    <div class="badge" id="b-api"><div class="dot"></div> Clé API</div>
     <div class="badge" id="b-auth"><div class="dot"></div> Auth Google</div>
     <div class="badge" id="b-sheet"><div class="dot"></div> Sheet connecté</div>
     <div class="badge" id="b-text"><div class="dot"></div> Transcription prête</div>
     <div class="badge" id="b-ai"><div class="dot"></div> Analyse IA</div>
   </div>
 
-  <!-- STEP 1 -->
-  <div class="card active" id="s1">
+  <!-- STEP 0 — Clé API -->
+  <div class="card active" id="s0">
+    <div class="card-bar"></div>
+    <div class="step-header">
+      <div class="step-num">00</div>
+      <div class="step-title">Clé API Anthropic</div>
+      <div class="step-check">✓</div>
+    </div>
+    <div class="info-box">
+      ℹ️ Ta clé est stockée uniquement dans ton navigateur (sessionStorage) et n'est jamais envoyée ailleurs que vers api.anthropic.com.
+    </div>
+    <div class="muted">Récupère ta clé sur <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a> → API Keys.</div>
+    <div class="row">
+      <input type="password" id="api-key" style="flex:1" placeholder="sk-ant-..." oninput="checkApiKey()">
+      <button class="btn" id="btn-api" onclick="validateApiKey()" disabled>Valider</button>
+    </div>
+    <div id="api-status" style="font-family:monospace;font-size:11px;margin-top:8px"></div>
+  </div>
+
+  <!-- STEP 1 — Auth Google -->
+  <div class="card" id="s1">
     <div class="card-bar"></div>
     <div class="step-header">
       <div class="step-num">01</div>
@@ -117,7 +128,7 @@ td { padding: 7px 12px; border-bottom: 1px solid var(--card); font-size: 11px; f
     </div>
   </div>
 
-  <!-- STEP 2 -->
+  <!-- STEP 2 — Sheet -->
   <div class="card" id="s2">
     <div class="card-bar"></div>
     <div class="step-header">
@@ -133,7 +144,7 @@ td { padding: 7px 12px; border-bottom: 1px solid var(--card); font-size: 11px; f
     <div id="sheet-status" style="font-family:monospace;font-size:12px"></div>
   </div>
 
-  <!-- STEP 3 -->
+  <!-- STEP 3 — Transcription -->
   <div class="card" id="s3">
     <div class="card-bar"></div>
     <div class="step-header">
@@ -147,15 +158,14 @@ Set 1 — Service de Dupont, ace, point équipe A.
 Martin smash en diagonale, point équipe B.
 Réception de Leroy, balle haute, continuité.
 Bloc de Moreau sur smash adverse, point équipe A.
-..."
-      oninput="handleTextInput()"></textarea>
+..." oninput="handleTextInput()"></textarea>
     <div class="char-count" id="char-count">0 caractères</div>
     <div style="margin-top:10px">
       <button class="btn" onclick="validateText()" id="btn-validate" disabled>Valider la transcription</button>
     </div>
   </div>
 
-  <!-- STEP 4 -->
+  <!-- STEP 4 — Analyse -->
   <div class="card" id="s4">
     <div class="card-bar"></div>
     <div class="step-header">
@@ -176,30 +186,46 @@ Bloc de Moreau sur smash adverse, point équipe A.
   </div>
 
 </div>
-
 <script>
 const CLIENT_ID = '149501735988-iacnjokn50mtfi3ciao3v37nvsnoh3gi.apps.googleusercontent.com';
 const REDIRECT_URI = 'https://biscottee.github.io/volley-stats';
+let STATE = { apiKey: null, token: null, spreadsheetId: null, transcription: null };
 
-let STATE = { token: null, spreadsheetId: null, transcription: null };
-
-// ── Detect token on page load (after OAuth redirect) ──────────────────────────
+// ── Restore API key from session ───────────────────────────────────────────
 window.addEventListener('load', () => {
+  const saved = sessionStorage.getItem('anthropic_key');
+  if (saved) { STATE.apiKey = saved; document.getElementById('api-key').value = saved; setDone('s0'); setBadge('b-api', true); }
+
   const hash = window.location.hash;
   if (hash.includes('access_token=')) {
     const params = new URLSearchParams(hash.replace('#', ''));
     const token = params.get('access_token');
     if (token) { history.replaceState(null, '', window.location.pathname); setToken(token); }
   }
+  checkReady();
 });
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ── API Key ────────────────────────────────────────────────────────────────
+function checkApiKey() {
+  const val = document.getElementById('api-key').value.trim();
+  document.getElementById('btn-api').disabled = !val.startsWith('sk-ant-');
+}
+
+function validateApiKey() {
+  const val = document.getElementById('api-key').value.trim();
+  if (!val.startsWith('sk-ant-')) return;
+  STATE.apiKey = val;
+  sessionStorage.setItem('anthropic_key', val);
+  document.getElementById('api-status').innerHTML = '<span style="color:var(--green)">✅ Clé sauvegardée (session)</span>';
+  setDone('s0'); setBadge('b-api', true);
+  checkReady();
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
 function startAuth() {
   const params = new URLSearchParams({
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    response_type: 'token',
-    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    client_id: CLIENT_ID, redirect_uri: REDIRECT_URI,
+    response_type: 'token', scope: 'https://www.googleapis.com/auth/spreadsheets',
     include_granted_scopes: 'true',
   });
   window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
@@ -211,14 +237,11 @@ async function setToken(token) {
     const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + token } });
     const u = await r.json();
     document.getElementById('auth-area').innerHTML = `<div class="user-box">✓ Connecté : <strong>${u.name || u.email}</strong></div>`;
-  } catch {
-    document.getElementById('auth-area').innerHTML = `<div class="user-box">✓ Connecté</div>`;
-  }
-  setDone('s1'); setBadge('b-auth', true);
-  checkReady();
+  } catch { document.getElementById('auth-area').innerHTML = `<div class="user-box">✓ Connecté</div>`; }
+  setDone('s1'); setBadge('b-auth', true); checkReady();
 }
 
-// ── Sheet ─────────────────────────────────────────────────────────────────────
+// ── Sheet ──────────────────────────────────────────────────────────────────
 async function connectSheet() {
   if (!STATE.token) { setSheetStatus('❌ Connecte-toi d\'abord à Google', false); return; }
   const url = document.getElementById('sheet-url').value.trim();
@@ -232,8 +255,7 @@ async function connectSheet() {
     const data = await r.json();
     if (data.sheets?.[0]) document.getElementById('sheet-tab').value = data.sheets[0].properties.title;
     setSheetStatus('✅ ' + data.properties.title, true);
-    setDone('s2'); setBadge('b-sheet', true);
-    checkReady();
+    setDone('s2'); setBadge('b-sheet', true); checkReady();
   } catch (e) { setSheetStatus('❌ ' + e.message, false); }
 }
 
@@ -243,13 +265,12 @@ function setSheetStatus(msg, ok) {
   el.style.color = ok === true ? 'var(--green)' : ok === false ? 'var(--red)' : 'var(--muted)';
 }
 
-// ── Text input ────────────────────────────────────────────────────────────────
+// ── Text ───────────────────────────────────────────────────────────────────
 function handleTextInput() {
-  const val = document.getElementById('transcription').value;
-  const len = val.trim().length;
-  const counter = document.getElementById('char-count');
-  counter.textContent = len + ' caractères';
-  counter.className = 'char-count' + (len > 20 ? ' ok' : '');
+  const len = document.getElementById('transcription').value.trim().length;
+  const c = document.getElementById('char-count');
+  c.textContent = len + ' caractères';
+  c.className = 'char-count' + (len > 20 ? ' ok' : '');
   document.getElementById('btn-validate').disabled = len < 20;
 }
 
@@ -257,23 +278,21 @@ function validateText() {
   const val = document.getElementById('transcription').value.trim();
   if (val.length < 20) return;
   STATE.transcription = val;
-  setDone('s3'); setBadge('b-text', true);
-  checkReady();
+  setDone('s3'); setBadge('b-text', true); checkReady();
 }
 
-// ── Ready ─────────────────────────────────────────────────────────────────────
+// ── Ready ──────────────────────────────────────────────────────────────────
 function checkReady() {
-  document.getElementById('btn-analyze').disabled = !(STATE.token && STATE.spreadsheetId && STATE.transcription);
+  document.getElementById('btn-analyze').disabled = !(STATE.apiKey && STATE.token && STATE.spreadsheetId && STATE.transcription);
 }
 
-// ── Analysis ──────────────────────────────────────────────────────────────────
+// ── Analysis ───────────────────────────────────────────────────────────────
 async function startAnalysis() {
   document.getElementById('btn-analyze').disabled = true;
   const logBox = document.getElementById('log-box');
   logBox.innerHTML = ''; logBox.classList.add('show');
   document.getElementById('prog-wrap').classList.add('show');
   setProgress(5);
-
   log('Analyse de la transcription par Claude...', 'info');
 
   let actions = [];
@@ -281,35 +300,30 @@ async function startAnalysis() {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-          'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
+        'Content-Type': 'application/json',
+        'x-api-key': STATE.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
         system: `Tu es un expert en analyse de matchs de volley-ball.
-Tu reçois la transcription texte d'un descriptif action par action d'un match de volley.
+Tu reçois la transcription texte d'un descriptif action par action d'un match.
 Extrais chaque action et retourne UNIQUEMENT un JSON valide sans markdown, sans texte avant ou après.
 Format: {"actions":[{"set":1,"equipe":"A","joueur":"Dupont","type_action":"Service","resultat":"Point","note":"Ace direct"}]}
-Types d'actions possibles: Service, Smash, Bloc, Passe, Réception, Défense, Autre.
-Résultats possibles: Point, Faute, Continuité.
-Si une info est inconnue ou non mentionnée: null.
-Extrais TOUTES les actions mentionnées, même si le texte est imprécis.`,
+Types: Service, Smash, Bloc, Passe, Réception, Défense, Autre. Résultats: Point, Faute, Continuité. Inconnu: null.
+Extrais TOUTES les actions, même si le texte est imprécis.`,
         messages: [{ role: 'user', content: `Voici la transcription du match :\n\n${STATE.transcription}` }]
       })
     });
-
     setProgress(50);
     const data = await resp.json();
-
-    if (!resp.ok) throw new Error(data.error?.message || 'Erreur API');
-
+    if (!resp.ok) throw new Error(data.error?.message || 'Erreur API Claude');
     const text = data.content.map(i => i.text || '').join('');
     const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
     actions = parsed.actions || [];
     log(`✅ ${actions.length} actions extraites`, 'success');
-
   } catch (e) {
     log('❌ Erreur analyse: ' + e.message, 'error');
     document.getElementById('btn-analyze').disabled = false;
@@ -317,37 +331,29 @@ Extrais TOUTES les actions mentionnées, même si le texte est imprécis.`,
   }
 
   setProgress(65);
-  if (!actions.length) { log('Aucune action détectée dans la transcription.', 'error'); document.getElementById('btn-analyze').disabled = false; return; }
+  if (!actions.length) { log('Aucune action détectée.', 'error'); document.getElementById('btn-analyze').disabled = false; return; }
 
-  showStats(actions);
-  showTable(actions);
-  setProgress(75);
+  showStats(actions); showTable(actions); setProgress(75);
   log('Écriture dans Google Sheets...', 'info');
 
   try {
     const tab = document.getElementById('sheet-tab').value || 'Feuille1';
     const headers = ['Set', 'Équipe', 'Joueur', "Type d'action", 'Résultat', 'Note'];
     const rows = actions.map(a => [a.set??'', a.equipe??'', a.joueur??'', a.type_action??'', a.resultat??'', a.note??'']);
-
     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${STATE.spreadsheetId}/values/${encodeURIComponent(tab)}!A:Z:clear`,
       { method: 'POST', headers: { Authorization: 'Bearer ' + STATE.token } });
-
     const wr = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${STATE.spreadsheetId}/values/${encodeURIComponent(tab+'!A1')}?valueInputOption=RAW`,
       { method: 'PUT', headers: { Authorization: 'Bearer ' + STATE.token, 'Content-Type': 'application/json' }, body: JSON.stringify({ values: [headers, ...rows] }) });
-
     if (!wr.ok) { const e = await wr.json(); throw new Error(e.error?.message); }
-
     setProgress(100);
     log(`✅ ${actions.length} lignes écrites dans l'onglet "${tab}"`, 'success');
     log('🎉 Google Sheet mis à jour avec succès !', 'success');
     setDone('s4'); setBadge('b-ai', true);
-
   } catch (e) { log('❌ Erreur Sheets: ' + e.message, 'error'); }
-
   document.getElementById('btn-analyze').disabled = false;
 }
 
-// ── UI helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 function log(msg, type='') {
   const box = document.getElementById('log-box');
   const d = document.createElement('div');
@@ -355,44 +361,33 @@ function log(msg, type='') {
   d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
   box.appendChild(d); box.scrollTop = box.scrollHeight;
 }
-
 function setProgress(pct) { document.getElementById('prog-bar').style.width = pct + '%'; }
 function setDone(id) { document.getElementById(id).className = 'card done'; }
 function setBadge(id, on) { document.getElementById(id).classList.toggle('on', on); }
 
+const ACTION_COLORS = { Service:'#ffb347', Smash:'#ff6b6b', Bloc:'#7eb8ff', Passe:'#b8ff7e', 'Réception':'#ff7eb8' };
 function showStats(actions) {
-  const points = actions.filter(a => a.resultat === 'Point').length;
-  const fautes = actions.filter(a => a.resultat === 'Faute').length;
+  const g = document.getElementById('stat-grid'); g.classList.add('show');
   const sets = [...new Set(actions.map(a=>a.set).filter(Boolean))].length;
-  const joueurs = [...new Set(actions.map(a=>a.joueur).filter(Boolean))].length;
-  const g = document.getElementById('stat-grid');
-  g.classList.add('show');
   g.innerHTML = [
     ['Total', actions.length, 'var(--accent)'],
-    ['Points', points, 'var(--green)'],
-    ['Fautes', fautes, 'var(--red)'],
+    ['Points', actions.filter(a=>a.resultat==='Point').length, 'var(--green)'],
+    ['Fautes', actions.filter(a=>a.resultat==='Faute').length, 'var(--red)'],
     ['Sets', sets||'—', 'var(--blue)'],
-    ['Joueurs', joueurs, 'var(--text)'],
+    ['Joueurs', [...new Set(actions.map(a=>a.joueur).filter(Boolean))].length, 'var(--text)'],
   ].map(([l,v,c]) => `<div class="stat-card"><div class="stat-val" style="color:${c}">${v}</div><div class="stat-label">${l}</div></div>`).join('');
 }
-
-const ACTION_COLORS = { Service:'#ffb347', Smash:'#ff6b6b', Bloc:'#7eb8ff', Passe:'#b8ff7e', 'Réception':'#ff7eb8' };
 function showTable(actions) {
-  const wrap = document.getElementById('table-wrap');
-  wrap.classList.add('show');
-  const preview = actions.slice(0, 15);
-  wrap.innerHTML = `<table>
-    <thead><tr><th>Set</th><th>Équipe</th><th>Joueur</th><th>Action</th><th>Résultat</th><th>Note</th></tr></thead>
-    <tbody>${preview.map(a => `<tr>
-      <td>${a.set??'-'}</td>
-      <td>${a.equipe??'-'}</td>
-      <td>${a.joueur??'-'}</td>
+  const wrap = document.getElementById('table-wrap'); wrap.classList.add('show');
+  wrap.innerHTML = `<table><thead><tr><th>Set</th><th>Équipe</th><th>Joueur</th><th>Action</th><th>Résultat</th><th>Note</th></tr></thead><tbody>
+    ${actions.slice(0,15).map(a=>`<tr>
+      <td>${a.set??'-'}</td><td>${a.equipe??'-'}</td><td>${a.joueur??'-'}</td>
       <td style="color:${ACTION_COLORS[a.type_action]||'var(--muted)'}">${a.type_action??'-'}</td>
       <td><span class="tag ${a.resultat==='Point'?'tag-point':a.resultat==='Faute'?'tag-faute':'tag-cont'}">${a.resultat??'-'}</span></td>
       <td style="color:var(--muted)">${a.note??''}</td>
-    </tr>`).join('')}</tbody>
-  </table>
-  ${actions.length > 15 ? `<div style="padding:8px 12px;font-family:monospace;font-size:10px;color:var(--muted)">+ ${actions.length-15} autres actions dans le Sheet</div>` : ''}`;
+    </tr>`).join('')}
+  </tbody></table>
+  ${actions.length>15?`<div style="padding:8px 12px;font-family:monospace;font-size:10px;color:var(--muted)">+ ${actions.length-15} autres actions dans le Sheet</div>`:''}`;
 }
 </script>
 </body>
